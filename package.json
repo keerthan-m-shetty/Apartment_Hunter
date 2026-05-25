@@ -9,7 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "apify-client": "^2.23.3",
+    "cheerio": "^1.2.0",
+    "chromium": "^3.0.3",
+    "date-fns": "^4.3.0",
     "next": "16.2.6",
+    "puppeteer-core": "^25.0.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
