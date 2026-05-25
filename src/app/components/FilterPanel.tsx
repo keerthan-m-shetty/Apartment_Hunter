@@ -62,7 +62,7 @@ export default function FilterPanel({
             onChange={(e) =>
               setSortBy(e.target.value as "newest" | "price" | "size")
             }
-            className="block w-full rounded-md border-gray-300 shadow-sm text-sm p-2 border"
+            className="block w-full rounded-md border-gray-300 shadow-sm text-sm p-2 border text-gray-900"
           >
             <option value="newest">Newest first</option>
             <option value="price">Cheapest first</option>
