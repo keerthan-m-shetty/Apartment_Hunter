@@ -6,11 +6,7 @@ export const dynamic = "force-dynamic";
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN;
-const CRON_SECRET = process.env.CRON_SECRET;
-
-// Your Apify Actor IDs (the actor names used in your schedules)
-const IMMOSCOUT_ACTOR_ID = process.env.APIFY_IMMOSCOUT_ACTOR_ID || "fatihtahta/immobilienscout24-scraper";
-const IMMOWELT_ACTOR_ID = process.env.APIFY_IMMOWELT_ACTOR_ID || "igolaizola/immowelt-scraper";
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
 // Banned keywords for swap apartments
 const BANNED_KEYWORDS = [
@@ -42,6 +38,15 @@ interface ApifyListing {
   metadata?: Record<string, unknown>;
 }
 
+interface ApifyWebhookPayload {
+  resource: {
+    id: string;
+    actId: string;
+    defaultDatasetId: string;
+    status: string;
+  };
+}
+
 function isSwapApartment(listing: ApifyListing): boolean {
   const title = listing.title || listing.name || "";
   const description =
@@ -63,7 +68,7 @@ function getListingId(listing: ApifyListing): string | null {
 }
 
 function formatTelegramMessage(listing: ApifyListing): string {
-  // Extract price (handles different scraper output formats)
+  // Extract price
   let price: string | number = "N/A";
   if (listing.price) {
     price = listing.price;
@@ -145,10 +150,12 @@ async function sendTelegramMessage(text: string): Promise<boolean> {
   }
 }
 
-export async function GET(request: Request) {
-  // 1. Security: verify cron secret (Vercel sets this automatically for cron jobs)
-  const authHeader = request.headers.get("authorization");
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+export async function POST(request: Request) {
+  // 1. Verify webhook secret
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get("secret");
+
+  if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -162,60 +169,41 @@ export async function GET(request: Request) {
   const client = new ApifyClient({ token: APIFY_API_TOKEN });
 
   try {
-    // 2. Fetch latest run datasets from both scheduled Apify tasks
-    const allListings: ApifyListing[] = [];
+    // 2. Parse the webhook payload from Apify
+    const payload: ApifyWebhookPayload = await request.json();
+    const datasetId = payload?.resource?.defaultDatasetId;
 
-    // Fetch latest successful run from each scheduled actor
-    try {
-      const immoscoutRuns = await client.actor(IMMOSCOUT_ACTOR_ID).runs().list({
-        limit: 1,
-        status: "SUCCEEDED",
-      });
-      if (immoscoutRuns.items.length > 0) {
-        const { items } = await client
-          .dataset(immoscoutRuns.items[0].defaultDatasetId)
-          .listItems();
-        allListings.push(...(items as ApifyListing[]));
-      }
-    } catch (e) {
-      console.error("Failed to fetch ImmoScout actor data:", e);
+    if (!datasetId) {
+      return NextResponse.json(
+        { error: "No datasetId in webhook payload" },
+        { status: 400 }
+      );
     }
 
-    try {
-      const immoweltRuns = await client.actor(IMMOWELT_ACTOR_ID).runs().list({
-        limit: 1,
-        status: "SUCCEEDED",
-      });
-      if (immoweltRuns.items.length > 0) {
-        const { items } = await client
-          .dataset(immoweltRuns.items[0].defaultDatasetId)
-          .listItems();
-        allListings.push(...(items as ApifyListing[]));
-      }
-    } catch (e) {
-      console.error("Failed to fetch Immowelt actor data:", e);
-    }
+    // 3. Fetch listings from the dataset
+    const { items } = await client.dataset(datasetId).listItems();
+    const allListings = items as ApifyListing[];
 
     if (allListings.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "No listings found in latest Apify runs",
+        message: "Dataset was empty, no notifications sent",
         newApartments: 0,
       });
     }
 
-    // 3. Get seen IDs from Apify Key-Value Store (persistent memory)
+    // 4. Get seen IDs from Apify Key-Value Store (persistent memory)
     const store = await client
       .keyValueStores()
       .getOrCreate("apartment-memory");
     const memoryRecord = await client
       .keyValueStore(store.id)
       .getRecord("SEEN_IDS");
-    let seenIds: string[] = memoryRecord
+    const seenIds: string[] = memoryRecord
       ? (memoryRecord.value as string[])
       : [];
 
-    // 4. Process listings — filter new ones
+    // 5. Process listings — filter new ones
     const newIdsFound: string[] = [];
     let sentCount = 0;
 
@@ -227,16 +215,16 @@ export async function GET(request: Request) {
 
       newIdsFound.push(id);
 
-      // 5. Send Telegram notification for each new listing
+      // 6. Send Telegram notification for each new listing
       const message = formatTelegramMessage(listing);
       const sent = await sendTelegramMessage(message);
       if (sent) sentCount++;
 
-      // Small delay to avoid Telegram rate limits (30 msgs/sec max)
+      // Small delay to avoid Telegram rate limits
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    // 6. Update Apify memory (keep last 1000 IDs)
+    // 7. Update Apify memory (keep last 1000 IDs)
     let updatedMemory = [...seenIds, ...newIdsFound];
     if (updatedMemory.length > 1000) {
       updatedMemory = updatedMemory.slice(updatedMemory.length - 1000);
@@ -245,7 +233,7 @@ export async function GET(request: Request) {
       .keyValueStore(store.id)
       .setRecord({ key: "SEEN_IDS", value: updatedMemory });
 
-    // 7. Send summary if there were new listings
+    // 8. Send summary if there were new listings
     if (newIdsFound.length > 0) {
       await sendTelegramMessage(
         `✅ Summary: ${newIdsFound.length} new apartment(s) found, ${sentCount} notifications sent.`
