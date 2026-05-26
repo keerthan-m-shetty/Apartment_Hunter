@@ -15,6 +15,8 @@ const BANNED_KEYWORDS = [
   "zum tausch",
   "tauschen",
   "tausch",
+  "seniorenwohnung",
+  "senioren",
 ];
 
 interface ApifyListing {

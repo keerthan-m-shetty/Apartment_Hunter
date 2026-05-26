@@ -130,9 +130,10 @@ function parseKleinanzeigenHTML(html: string): Apartment[] {
     const isSwap = lowerTitle.includes("tausch") || lowerDesc.includes("tauschwohnung") || lowerTitle.includes("suche ") || lowerTitle.includes("sucht ");
     const isDachgeschoss = lowerTitle.includes("dachgeschoss") || lowerDesc.includes("dachgeschoss");
     const isShortTerm = lowerTitle.includes("befristet") || lowerTitle.includes("zwischenmiete") || lowerDesc.includes("frei bis") || lowerDesc.includes("available until") || lowerTitle.includes("untermiete");
+    const isSenior = lowerTitle.includes("seniorenwohnung") || lowerDesc.includes("seniorenwohnung") || lowerTitle.includes("senioren") || lowerDesc.includes("senioren");
     const inHamburg = isHamburgAddress(location);
 
-    if (title && price > 0 && !isSwap && !isDachgeschoss && !isShortTerm && inHamburg) {
+    if (title && price > 0 && !isSwap && !isDachgeschoss && !isShortTerm && !isSenior && inHamburg) {
       apartments.push({
         id: `ka-${id}`,
         title: title.trim(),
@@ -281,7 +282,7 @@ async function scrapeImmoScout(): Promise<Apartment[]> {
       const title = String(item.title || "").trim();
       if (!title) continue;
       const lowerTitle = title.toLowerCase();
-      if (lowerTitle.includes("tausch") || lowerTitle.includes("dachgeschoss") || lowerTitle.includes("befristet") || lowerTitle.includes("zwischenmiete") || lowerTitle.includes("untermiete")) continue;
+      if (lowerTitle.includes("tausch") || lowerTitle.includes("dachgeschoss") || lowerTitle.includes("befristet") || lowerTitle.includes("zwischenmiete") || lowerTitle.includes("untermiete") || lowerTitle.includes("seniorenwohnung") || lowerTitle.includes("senioren")) continue;
 
       const pricing = item.pricing as Record<string, unknown> | undefined;
       const priceObj = pricing?.price as Record<string, unknown> | undefined;
@@ -359,7 +360,7 @@ async function scrapeImmowelt(): Promise<Apartment[]> {
       const title = String(mainDesc?.headline || item.title || item.name || "").trim();
       const lowerTitle = title.toLowerCase();
       if (!title) continue;
-      if (lowerTitle.includes("tausch") || lowerTitle.includes("dachgeschoss") || lowerTitle.includes("befristet") || lowerTitle.includes("zwischenmiete") || lowerTitle.includes("untermiete")) continue;
+      if (lowerTitle.includes("tausch") || lowerTitle.includes("dachgeschoss") || lowerTitle.includes("befristet") || lowerTitle.includes("zwischenmiete") || lowerTitle.includes("untermiete") || lowerTitle.includes("seniorenwohnung") || lowerTitle.includes("senioren")) continue;
 
       const hardFacts = item.hardFacts as Record<string, unknown> | undefined;
       const priceObj = hardFacts?.price as Record<string, unknown> | undefined;
