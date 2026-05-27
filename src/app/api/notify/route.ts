@@ -60,6 +60,20 @@ function isSwapApartment(listing: ApifyListing): boolean {
   return BANNED_KEYWORDS.some((keyword) => text.includes(keyword));
 }
 
+function getListingPrice(listing: ApifyListing): number {
+  if (listing.price) return listing.price;
+  if (listing.warmRent) return listing.warmRent;
+  if (listing.pricing) {
+    const pricingPrice = listing.pricing.price as Record<string, unknown> | undefined;
+    if (pricingPrice?.value) return Number(pricingPrice.value);
+  }
+  if (listing.hardFacts) {
+    const hfPrice = listing.hardFacts.price as Record<string, unknown> | undefined;
+    if (hfPrice?.value) return parseFloat(String(hfPrice.value).replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
+  }
+  return 0;
+}
+
 function getListingId(listing: ApifyListing): string | null {
   return (
     listing.id?.toString() ||
@@ -214,6 +228,8 @@ export async function POST(request: Request) {
       if (!id) continue;
       if (seenIds.includes(id)) continue;
       if (isSwapApartment(listing)) continue;
+      const price = getListingPrice(listing);
+      if (price > 850 || price <= 0) continue;
 
       newIdsFound.push(id);
 

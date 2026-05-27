@@ -24,7 +24,7 @@ export interface SearchFilters {
 }
 
 export const DEFAULT_FILTERS: SearchFilters = {
-  maxPrice: 1000,
+  maxPrice: 850,
   minRooms: 1.5,
   maxRooms: 3,
   districts: [
