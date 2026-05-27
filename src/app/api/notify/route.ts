@@ -17,6 +17,10 @@ const BANNED_KEYWORDS = [
   "tausch",
   "seniorenwohnung",
   "senioren",
+  "kurzfristig",
+  "kurzfristige",
+  "möbliert auf zeit",
+  "wohnen auf zeit",
 ];
 
 interface ApifyListing {

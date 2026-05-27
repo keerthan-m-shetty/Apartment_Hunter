@@ -30,6 +30,12 @@ const BANNED_KEYWORDS = [
   "befristet",
   "zwischenmiete",
   "untermiete",
+  "kurzfristig",
+  "kurzfristige",
+  "möbliert auf zeit",
+  "wohnen auf zeit",
+  "frei bis",
+  "available until",
 ];
 
 // ============ HELPERS ============
@@ -236,7 +242,7 @@ function parseWgGesuchtHTML(html: string): Apartment[] {
 
     const isShortTerm = title.toLowerCase().includes("befristet") || title.toLowerCase().includes("zwischenmiete") || title.toLowerCase().includes("untermiete");
 
-    if (title && price > 0 && price <= MAX_PRICE && !isBanned(title) && !isShortTerm) {
+    if (title && price > 0 && price <= MAX_PRICE && !isBanned(title + " " + card) && !isShortTerm) {
       apartments.push({
         id: `wg-${id}`,
         title,
