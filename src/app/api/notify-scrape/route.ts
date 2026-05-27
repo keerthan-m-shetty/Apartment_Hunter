@@ -95,7 +95,6 @@ function isBanned(text: string): boolean {
 async function scrapeKleinanzeigen(): Promise<Apartment[]> {
   try {
     const urls = [
-      `https://www.kleinanzeigen.de/s-wohnung-mieten/hamburg/anzeige:angebote/preis::${MAX_PRICE}/c203l9409+wohnung_mieten.zimmer_d:1.5,3.0`,
       `https://www.kleinanzeigen.de/s-wohnung-mieten/bergedorf/anzeige:angebote/preis::${MAX_PRICE}/c203l17929+wohnung_mieten.zimmer_d:1.5,3.0`,
     ];
 
@@ -203,7 +202,7 @@ function parseKleinanzeigenHTML(html: string): Apartment[] {
 async function scrapeWgGesucht(): Promise<Apartment[]> {
   try {
     const url =
-      `https://www.wg-gesucht.de/wohnungen-in-Hamburg.55.2.1.0.html?offer_filter=1&city_id=55&noDe498=1&categories%5B%5D=2&rent_types%5B%5D=0&sMin=40&rMax=${MAX_PRICE}`;
+      `https://www.wg-gesucht.de/wohnungen-in-Hamburg-Bergedorf.124.2.1.0.html?offer_filter=1&city_id=55&noDe498=1&categories%5B%5D=2&rent_types%5B%5D=0&sMin=40&rMax=${MAX_PRICE}`;
     const res = await fetch(url, { headers: HEADERS });
     if (!res.ok) return [];
     const html = await res.text();
