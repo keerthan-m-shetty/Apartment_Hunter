@@ -81,7 +81,14 @@ function extractDistrict(address: string): string {
 
 function isBanned(text: string): boolean {
   const lower = text.toLowerCase();
-  return BANNED_KEYWORDS.some((kw) => lower.includes(kw));
+  if (BANNED_KEYWORDS.some((kw) => lower.includes(kw))) return true;
+  // Catch date-range patterns like "vom 19.6.2026 bis 26.6.2026" or "ab 01.07 bis 31.07"
+  if (/(?:vom|ab)\s+\d{1,2}\.\d{1,2}\.?\d{0,4}\s+bis\s+\d{1,2}\.\d{1,2}/.test(lower)) return true;
+  // Catch "zu vermieten" with "bis" nearby (short-term sublet pattern)
+  if (/bis\s+\d{1,2}\.\d{1,2}\.?\d{0,4}\s+zu\s+vermieten/.test(lower)) return true;
+  // Catch date ranges with dash like "17.07-26.07" or "17.07.-26.07."
+  if (/\d{1,2}\.\d{1,2}\.?\d{0,4}\s*-\s*\d{1,2}\.\d{1,2}/.test(lower)) return true;
+  return false;
 }
 
 // ============ KLEINANZEIGEN ============
