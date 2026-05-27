@@ -293,10 +293,16 @@ async function scrapeSaga(): Promise<Apartment[]> {
 
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "SAGA Wohnung";
       const price = priceMatch ? parseFloat(priceMatch[1].replace(",", ".")) : 0;
+      const url = linkMatch ? `https://www.saga.hamburg${linkMatch[1]}` : "https://www.saga.hamburg/immobiliensuche";
+
+      // Derive stable ID from URL path or title+price to avoid duplicate notifications
+      const stableId = linkMatch
+        ? `saga-${linkMatch[1].replace(/[^a-z0-9]/gi, "").slice(0, 40)}`
+        : `saga-${title.replace(/[^a-z0-9]/gi, "").slice(0, 30)}-${price}`;
 
       if ((titleMatch || priceMatch) && price <= MAX_PRICE && !isBanned(title)) {
         apartments.push({
-          id: `saga-${apartments.length}-${Date.now()}`,
+          id: stableId,
           title,
           price,
           size: sizeMatch ? parseFloat(sizeMatch[1].replace(",", ".")) : 0,

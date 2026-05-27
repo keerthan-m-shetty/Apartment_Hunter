@@ -69,14 +69,25 @@ function parseSagaListings(html: string): Apartment[] {
     );
 
     if (titleMatch || priceMatch) {
-      apartments.push({
-        id: `saga-${apartments.length}-${Date.now()}`,
-        title: titleMatch
+      const title = titleMatch
           ? titleMatch[1].replace(/<[^>]*>/g, "").trim()
-          : "SAGA Wohnung",
-        price: priceMatch
+          : "SAGA Wohnung";
+      const price = priceMatch
           ? parseFloat(priceMatch[1].replace(",", "."))
-          : 0,
+          : 0;
+      const url = linkMatch
+          ? `https://www.saga.hamburg${linkMatch[1]}`
+          : "https://www.saga.hamburg/immobiliensuche";
+
+      // Derive stable ID from URL path or title+price
+      const stableId = linkMatch
+        ? `saga-${linkMatch[1].replace(/[^a-z0-9]/gi, "").slice(0, 40)}`
+        : `saga-${title.replace(/[^a-z0-9]/gi, "").slice(0, 30)}-${price}`;
+
+      apartments.push({
+        id: stableId,
+        title,
+        price,
         size: sizeMatch
           ? parseFloat(sizeMatch[1].replace(",", "."))
           : 0,
